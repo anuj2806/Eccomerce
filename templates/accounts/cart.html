@@ -1,0 +1,173 @@
+{% extends "base/base.html" %}
+{% block start %}
+<section class="section-content padding-y">
+<div class="container">
+					
+    <div class="row">
+        <main class="col-md-9">
+    <div class="card">
+    
+    <table class="table table-borderless table-shopping-cart">
+    <thead class="text-muted">
+    <tr class="small text-uppercase">
+      <th scope="col">Product</th>
+      <th scope="col" width="120">Quantity</th>
+      <th scope="col" width="120">Price</th>
+      <th scope="col" class="text-right" width="200"> </th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for Item in Items %}
+    <tr>
+        <td>
+            <figure class="itemside">
+                <div class="aside"><img src="/media/{{Item.product.product_images.first.image}}" class="img-sm"></div>
+                <figcaption class="info">
+                    <a href="#" class="title text-dark">{{Item.product.product_name}}</a>
+                    <p class="text-muted small">Size: {{Item.size_Variant.product_size}}, Color: blue, <br> Brand: H&amp;M</p>
+                </figcaption>
+            </figure>
+        </td>
+        <td> 
+            <form method="post" action="{% url 'update_quantity' %}" class="quantity-form">
+                {% csrf_token %}
+                <input type="hidden" name="item_id" value="{{ Item.uid }}">
+                <select name="new_quantity" class="form-control quantity-dropdown">
+                    {% for quantity in '123456789'|make_list %}
+                    <option value="{{ forloop.counter }}" {% if forloop.counter == Item.quantity %}selected{% endif %}>{{ forloop.counter }}</option>
+                    {% endfor %}
+                </select> 
+            </form>
+        </td>
+        <td> 
+            <div class="price-wrap"> 
+                <var class="price">₹{{Item.get_product_price}}.00</var> 
+                <small class="text-muted"> ₹{{Item.get_product_price}}.00 each </small> 
+            </div> <!-- price-wrap .// -->
+        </td>
+        <td class="text-right"> 
+        <a data-original-title="Save to Wishlist" title="" href="" class="btn btn-light" data-toggle="tooltip"> <i class="fa fa-heart"></i></a> 
+        <a href="{% url "remove_cart_item" Item.uid %}" class="btn btn-light"> Remove</a>
+        </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+    </table>
+    
+    <div class="card-body border-top">
+        <button id="rzp-button1" class="btn btn-primary float-md-right"> Make Purchase <i class="fa fa-chevron-right"></i> </button>
+        <a href="{% url "index" %}" class="btn btn-light"> <i class="fa fa-chevron-left"></i> Continue shopping </a>
+    </div>	
+    </div> <!-- card.// -->
+    
+    <div class="alert alert-success mt-3">
+        <p class="icontext"><i class="icon text-success fa fa-truck"></i> Free Delivery within 1-2 weeks</p>
+    </div>
+    
+        </main> <!-- col.// -->
+        <aside class="col-md-3">
+            <div class="card mb-3">
+                <div class="card-body">
+                <form method='POST' action="{% url 'cart' %}">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label>Have coupon?</label>
+                        {% include "base/alert.html" %}
+                        <div class="input-group">
+                                <input type="text" name="coupon" class="form-control" placeholder="Coupon code">
+                                <span class="input-group-append"> 
+                                    <button type="submit" class="btn btn-primary">Apply</button>
+                                </span>
+                        </div>
+                       
+                        
+                    </div>
+                    {% if cart.coupon %}
+                        <a href="{% url "remove_coupon" cart.uid%}" class="btn btn-success">{{cart.coupon.coupon_code}}<span style="color:red">X</span></a>
+                    {% endif %}
+                </form>
+                </div> <!-- card-body.// -->
+            </div>  <!-- card .// -->
+            <div class="card">
+                <div class="card-body">
+                        <dl class="dlist-align">
+                          <dt>Total price:</dt>
+                          <dd class="text-right">INR {{cart.get_cost_total}}</dd>
+                        </dl>
+                        {% if cart.coupon %}
+                        <dl class="dlist-align">
+                          <dt>Discount:</dt>
+                          <dd class="text-right">INR {{cart.coupon.discount_price}}</dd>
+                        </dl>
+                        
+                        <dl class="dlist-align">
+                          <dt>Total:</dt>
+                          <dd class="text-right  h5"><strong>INR {{cart.get_total}}</strong></dd>
+                        </dl>
+                        {% endif %}
+                        <hr>
+                        <p class="text-center mb-3">
+                            <img src="/media/images/misc/payments.png" height="26">
+                        </p>
+                        
+                </div> <!-- card-body.// -->
+            </div>  <!-- card .// -->
+        </aside> <!-- col.// -->
+    </div>
+    
+    </div>
+
+</section>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+    function priceCal(){
+        let nos = document.getElementById("noofitems").value
+        let price = document.getElementById("pricee").innerText
+        console.log(nos,price)
+        document.getElementById("Calprice").innerText=nos*price
+        
+
+    }
+    
+    $(document).ready(function() {
+        $('.quantity-dropdown').change(function() {
+            // Automatically submit the form when the quantity changes
+            $(this).closest('form').submit();
+        });
+    });
+    
+
+    var options = {
+        "key": "rzp_test_8AfzmGWcJl3ZzT", // Enter the Key ID generated from the Dashboard
+        "amount":'{{payment.amount}}', // Amount is in currency subunits. Default currency is INR. Hence, 50000 refers to 50000 paise
+        "currency": "INR",
+        "name": "Anuj Ecommerce",
+        "description": "Test Transaction",
+        "image": "https://example.com/your_logo",
+        "order_id":'{{payment.id}}', //This is a sample Order ID. Pass the `id` obtained in the response of Step 1
+        "handler": function (response){
+            window.location.href = 'http://127.0.0.1:8000/accounts/success/'+ '?razorpay_payment_id='+response.razorpay_payment_id +'&razorpay_order_id='+response.razorpay_order_id+'&=razorpay_signature'+response.razorpay_signature;
+            alert(response.razorpay_payment_id);
+            alert(response.razorpay_order_id);
+            alert(response.razorpay_signature)
+        },
+        "theme": {
+            "color": "#3399cc"
+        }
+    };
+    var rzp1 = new Razorpay(options);
+    rzp1.on('payment.failed', function (response){
+            alert(response.error.code);
+            alert(response.error.description);
+            alert(response.error.source);
+            alert(response.error.step);
+            alert(response.error.reason);
+            alert(response.error.metadata.order_id);
+            alert(response.error.metadata.payment_id);
+    });
+    document.getElementById('rzp-button1').onclick = function(e){
+        rzp1.open();
+        e.preventDefault();
+    }
+    </script>
+{% endblock  %}
